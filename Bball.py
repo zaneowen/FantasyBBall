@@ -1,5 +1,5 @@
-# Fantasy Basketball tool for team analysis and insight
 from tkinter import *
+import json
 from nba_api.stats.static import players
 from nba_api.stats.endpoints import commonplayerinfo
 
@@ -126,8 +126,9 @@ class Application(Frame):
         self.bttnSubmitLineup = Button(self, text="Submit Lineup for Analysis", background = "black", foreground = "orange", command = self.submitLineup)
         self.bttnSubmitLineup.grid(row = 11, column = 0, columnspan = 2, sticky = "nsew")
         
+        
     def submitMatchup(self):
-        # gets user's lineup and puts players into list
+        # gets user's lineup from entry boxes and puts players into list
         pg = self.entryPG.get()
         sg = self.entrySG.get()
         sf = self.entrySF.get()
@@ -140,7 +141,7 @@ class Application(Frame):
         util3 = self.entryUtil3.get()
         lineup = [pg, sg, sf, pf, c, g, f, util1, util2, util3]
         
-        # gets opp's lineup and puts players into list
+        # gets opp's lineup from entry boxes and puts players into list
         oppPG = self.entryOppPG.get()
         oppSG = self.entryOppSG.get()
         oppSF = self.entryOppSF.get()
@@ -156,13 +157,16 @@ class Application(Frame):
         # creates list of player ID's in lineup
         lineupIDs = []
         for player in lineup:
+            # finds player's ID
             playerDict = players.find_players_by_full_name(player)[0]
             lineupIDs.append(playerDict["id"])
             
         oppLineupIDs = []
         for player in oppLineup:
+            # finds player's ID
             playerDict = players.find_players_by_full_name(player)[0]
             oppLineupIDs.append(playerDict["id"])
+            
     
     def submitLineup(self):
         # gets user's lineup and puts players into list
@@ -181,9 +185,22 @@ class Application(Frame):
         # creates list of player ID's in lineup
         lineupIDs = []
         for player in lineup:
+            # finds player's ID
             playerDict = players.find_players_by_full_name(player)[0]
             lineupIDs.append(playerDict["id"])
         
+        # goes through each player ID
+        for playerID in lineupIDs:
+            # uses the CommonPLayerInfo method to get info about the player using player ID
+            playerInfo = commonplayerinfo.CommonPlayerInfo(player_id = playerID)
+            # opens and reads the json for the player ID
+            realInfo = json.loads(playerInfo.get_json())
+            # gets list with the info wanted (name, points, assists, rebounds) and prints it
+            basicAvgs = realInfo["resultSets"][1]["rowSet"][0]
+            print(basicAvgs[1])
+            print("Points:", basicAvgs[3], "Assits:", basicAvgs[4], "Rebounds:", basicAvgs[5])
+            print()
+            
         
 
         
@@ -191,7 +208,7 @@ class Application(Frame):
 root = Tk()
 root.title("Fantasy Basketball Analyzer")
 root.geometry("1200x800")
-root.resizable(width = FALSE, height = FALSE)
+root.resizable(width = TRUE, height = TRUE)
 root.configure(background = "orange")
 
 
