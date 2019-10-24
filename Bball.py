@@ -2,9 +2,10 @@ from tkinter import *
 import json
 from nba_api.stats.static import players
 from nba_api.stats.endpoints import commonplayerinfo
+from nba_api.stats.endpoints import playerprofilev2
 
 class Application(Frame):
-    #test
+
     def __init__(self, master):
         Frame.__init__(self, master)
         self.grid()
@@ -120,10 +121,12 @@ class Application(Frame):
         self.entryOppUtil3.grid(row = 10, column = 3, sticky = "nsew")
         
         # buttons for submitting lineups
-        self.bttnSubmitLineup = Button(self, text="Submit Matchup for Analysis", background = "black", foreground = "orange", command = self.submitMatchup)
+        self.bttnSubmitLineup = Button(self, text="Submit Matchup for Analysis", 
+                                       background = "black", foreground = "orange", command = self.submitMatchup)
         self.bttnSubmitLineup.grid(row = 11, column = 2, columnspan = 2, sticky = "nsew")
         
-        self.bttnSubmitLineup = Button(self, text="Submit Lineup for Analysis", background = "black", foreground = "orange", command = self.submitLineup)
+        self.bttnSubmitLineup = Button(self, text="Submit Lineup for Analysis", 
+                                       background = "black", foreground = "orange", command = self.submitLineup)
         self.bttnSubmitLineup.grid(row = 11, column = 0, columnspan = 2, sticky = "nsew")
         
         
@@ -160,12 +163,23 @@ class Application(Frame):
             # finds player's ID
             playerDict = players.find_players_by_full_name(player)[0]
             lineupIDs.append(playerDict["id"])
-            
+         
+        # creates dictionary of ids as keys and names as values    
+        playerID_dict = {}
+        for i in range(len(lineup)):
+            playerID_dict[lineupIDs[i]] = lineup[i]
+        
+        # creates list of opposing players ID's in lineup
         oppLineupIDs = []
         for player in oppLineup:
             # finds player's ID
             playerDict = players.find_players_by_full_name(player)[0]
             oppLineupIDs.append(playerDict["id"])
+        
+        # creates dictionary of ids as keys and names as values  
+        oppPlayerID_dict = {}
+        for i in range(len(oppLineup)):
+            oppPlayerID_dict[oppLineupIDs[i]] = oppLineup[i]
             
     
     def submitLineup(self):
@@ -182,24 +196,44 @@ class Application(Frame):
         util3 = self.entryUtil3.get()
         lineup = [pg, sg, sf, pf, c, g, f, util1, util2, util3]
         
+        
+        
         # creates list of player ID's in lineup
         lineupIDs = []
         for player in lineup:
             # finds player's ID
-            playerDict = players.find_players_by_full_name(player)[0]
-            lineupIDs.append(playerDict["id"])
+            # try/except in case player name is spelt wrong
+            try:
+                playerDict = players.find_players_by_full_name(player)[0]
+                lineupIDs.append(playerDict["id"])
+            except:
+                print("Player wasn't found. Please trying spelling it exactly as listed on NBA.com")
+            
+        ## need to fix this part to be able to work if a name is spelt wrong 
+            
+        # creates dictionary of ids as keys and names as values    
+        playerID_dict = {}
+        for i in range(len(lineup)):
+            playerID_dict[lineupIDs[i]] = lineup[i]
+            
+        
         
         # goes through each player ID
-        for playerID in lineupIDs:
-            # uses the CommonPLayerInfo method to get info about the player using player ID
-            playerInfo = commonplayerinfo.CommonPlayerInfo(player_id = playerID)
-            # opens and reads the json for the player ID
-            realInfo = json.loads(playerInfo.get_json())
-            # gets list with the info wanted (name, points, assists, rebounds) and prints it
-            basicAvgs = realInfo["resultSets"][1]["rowSet"][0]
-            print(basicAvgs[1])
-            print("Points:", basicAvgs[3], "Assits:", basicAvgs[4], "Rebounds:", basicAvgs[5])
+        for playerID in playerID_dict.keys():
+            # uses the PlayerProfileV2 endpoint to get the regular season per game stats for player
+            playerInfo = playerprofilev2.PlayerProfileV2(per_mode36 = "PerGame", player_id = playerID)
+            # reads the json file into a variable
+            jsonInfo = json.loads(playerInfo.get_json())
+            # gets the current and last season stat lines for the player
+            currentSeason = jsonInfo["resultSets"][0]["rowSet"][-1]
+            lastSeason = jsonInfo["resultSets"][0]["rowSet"][-2]
+            
+            print(playerID_dict[playerID])
+            print("Points:", currentSeason[-1], " Assists:", currentSeason[-6], " Rebounds:", currentSeason[-7],
+                  " Steals:", currentSeason[-5], " Blocks:", currentSeason[-4], " Turnovers:", currentSeason[-3])
             print()
+        
+            
             
         
 
